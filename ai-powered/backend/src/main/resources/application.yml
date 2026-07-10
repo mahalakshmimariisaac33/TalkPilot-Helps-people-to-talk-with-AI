@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: interviewpilot-ai
+  datasource:
+    url: jdbc:mysql://localhost:3306/interviewpilot?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+  profiles:
+    active: dev
+
+server:
+  port: 8080
+
+spring.servlet.multipart:
+  max-file-size: 8MB
+  max-request-size: 8MB
+
+app:
+  cors:
+    allowed-origins: http://localhost:5173,http://localhost:3000
+  ai:
+    openai-api-key: ${OPENAI_API_KEY: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}
+    openai-base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+    model: ${OPENAI_MODEL:gpt-4o-mini}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:h2:mem:interviewpilot;DB_CLOSE_DELAY=-1;MODE=MySQL;NON_KEYWORDS=VALUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  h2:
+    console:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
