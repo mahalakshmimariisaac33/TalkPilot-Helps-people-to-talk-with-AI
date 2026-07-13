@@ -1,142 +1,82 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 export function useSpeechRecognition() {
-  const [finalTranscript,   setFinalTranscript]   = useState('');
+  const [transcript,        setTranscript]        = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [isListening,       setIsListening]       = useState(false);
-  const [isSupported,       setIsSupported]       = useState(false);
+  const recognitionRef = useRef(null);
 
-  const recognitionRef  = useRef(null);
-  const shouldListenRef = useRef(false);   // true = keep mic alive
-  const startingRef     = useRef(false);   // true = start() already in flight
-  const restartTimer    = useRef(null);
+  const isSupported = !!SpeechRecognition;
 
-  useEffect(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    setIsSupported(!!SR);
-    if (!SR) return;
+  const startListening = useCallback(() => {
+    if (!isSupported || isListening) return;
 
-    const rec = new SR();
-    rec.continuous      = true;
-    rec.interimResults  = true;
-    rec.lang            = 'en-US';
-    rec.maxAlternatives = 1;
+    const recognition = new SpeechRecognition();
+    recognition.continuous      = true;   // never auto-stop on silence
+    recognition.interimResults  = true;
+    recognition.lang            = 'en-US';
 
-    rec.onstart = () => {
-      startingRef.current = false;   // start() completed successfully
-      setIsListening(true);
-    };
+    recognition.onstart = () => setIsListening(true);
 
-    rec.onresult = (event) => {
-      let newFinal  = '';
-      let newInterim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+    recognition.onresult = (event) => {
+      let final   = '';
+      let interim = '';
+      for (let i = 0; i < event.results.length; i++) {
+        // keep raw — filler words, pauses, hesitation intact
         if (event.results[i].isFinal) {
-          newFinal += event.results[i][0].transcript + ' ';
+          final += event.results[i][0].transcript;
         } else {
-          newInterim += event.results[i][0].transcript;
+          interim += event.results[i][0].transcript;
         }
       }
-      if (newFinal.trim()) {
-        setFinalTranscript((p) => (p + ' ' + newFinal).trim());
-        setInterimTranscript('');
-      } else if (newInterim) {
-        setInterimTranscript(newInterim);
-      }
+      if (final)   setTranscript((prev) => prev + final);
+      if (interim) setInterimTranscript(interim);
     };
 
-    rec.onerror = (e) => {
-      startingRef.current = false;
-      // Permissions denied — stop completely
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-        shouldListenRef.current = false;
-        setIsListening(false);
-      }
-      // no-speech / network / audio-capture — onend will handle restart
+    recognition.onerror = (e) => {
+      console.error('STT error:', e.error);
+      setIsListening(false);
     };
 
-    rec.onend = () => {
-      startingRef.current = false;
-      if (!shouldListenRef.current) {
-        setIsListening(false);
-        return;
-      }
-      // Auto-restart — small delay to avoid "already started" error
-      clearTimeout(restartTimer.current);
-      restartTimer.current = setTimeout(() => {
-        if (!shouldListenRef.current || startingRef.current) return;
-        startingRef.current = true;
-        try { rec.start(); } catch { startingRef.current = false; }
-      }, 200);
+    recognition.onend = () => {
+      // do NOT restart — manual stop only
+      setIsListening(false);
+      setInterimTranscript('');
     };
 
-    recognitionRef.current = rec;
-    return () => {
-      shouldListenRef.current = false;
-      startingRef.current     = false;
-      clearTimeout(restartTimer.current);
-      try { rec.stop(); } catch { /* ignore */ }
-    };
-  }, []);
+    recognitionRef.current = recognition;
+    recognition.start();
+  }, [isSupported, isListening]);
 
-  /**
-   * startListening — call this when the candidate should answer.
-   * Clears transcript fresh, then starts the mic after a brief delay
-   * so the speech-synthesis audio pipeline has fully closed.
-   */
-  const startListening = useCallback(() => {
-    if (!recognitionRef.current) return;
-
-    // Reset transcript for this new answer
-    setFinalTranscript('');
-    setInterimTranscript('');
-
-    shouldListenRef.current = true;
-    setIsListening(true);
-
-    // 350ms buffer — lets browser fully release the audio output device
-    // before opening the microphone input
-    clearTimeout(restartTimer.current);
-    restartTimer.current = setTimeout(() => {
-      if (!shouldListenRef.current || startingRef.current) return;
-      startingRef.current = true;
-      try {
-        recognitionRef.current.start();
-      } catch {
-        startingRef.current = false;
-        // Already running is fine — onstart will clear startingRef
-      }
-    }, 350);
-  }, []);
-
-  /**
-   * stopListening — call before submitting or when switching state.
-   * Prevents onend from restarting.
-   */
   const stopListening = useCallback(() => {
-    shouldListenRef.current = false;
-    startingRef.current     = false;
-    clearTimeout(restartTimer.current);
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
     setIsListening(false);
     setInterimTranscript('');
-    try { recognitionRef.current?.stop(); } catch { /* ignore */ }
   }, []);
 
-  const getCleanTranscript = useCallback(() => finalTranscript.trim(), [finalTranscript]);
-
   const resetTranscript = useCallback(() => {
-    setFinalTranscript('');
+    setTranscript('');
     setInterimTranscript('');
   }, []);
 
+  const getCleanTranscript = useCallback(() => {
+    // returns raw transcript — AI evaluates filler words itself
+    return transcript.trim();
+  }, [transcript]);
+
   return {
-    transcript:        finalTranscript,
+    transcript,
     interimTranscript,
     isListening,
     isSupported,
     startListening,
     stopListening,
-    getCleanTranscript,
     resetTranscript,
+    getCleanTranscript,
   };
 }
