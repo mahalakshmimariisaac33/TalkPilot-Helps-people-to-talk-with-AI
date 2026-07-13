@@ -39,6 +39,7 @@ public class InterviewService {
     private final ResumeRepository resumeRepository;
     private final UserService userService;
     private final DifficultyPlanner difficultyPlanner;
+    private final EmailService emailService;
 
     @Transactional
     public InterviewSessionDto startInterview(StartInterviewRequest request) {
@@ -79,6 +80,7 @@ public class InterviewService {
                 .user(user)
                 .resume(resume)
                 .candidateName(request.getCandidateName())
+                .candidateEmail(request.getCandidateEmail())
                 .jobRole(request.getJobRole())
                 .interviewType(request.getInterviewType())
                 .interviewerGender(request.getInterviewerGender())
@@ -254,6 +256,7 @@ public class InterviewService {
         session.setTopicsForNextPractice(report.getTopicsForNextPractice());
 
         sessionRepository.save(session);
+        emailService.sendInterviewReport(session);
         return toDto(session, null, "closing", true, false);
     }
 
