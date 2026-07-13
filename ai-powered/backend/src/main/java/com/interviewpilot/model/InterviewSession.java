@@ -32,6 +32,7 @@ public class InterviewSession {
 
     @Column(nullable = false)
     private String candidateName;
+    private String candidateEmail;
 
     @Column(nullable = false)
     private String jobRole;
