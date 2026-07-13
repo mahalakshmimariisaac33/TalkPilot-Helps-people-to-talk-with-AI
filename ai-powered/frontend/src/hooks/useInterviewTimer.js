@@ -1,38 +1,46 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const MAX_MINUTES = 15;
+const MAX_SECONDS = MAX_MINUTES * 60;
 
-export function useInterviewTimer(isActive, startedAt, onMaxReached) {
-  const [elapsed, setElapsed] = useState(0);
-  const intervalRef           = useRef(null);
-  const onMaxReachedRef       = useRef(onMaxReached);
-  const maxFiredRef           = useRef(false);
-
-  useEffect(() => { onMaxReachedRef.current = onMaxReached; }, [onMaxReached]);
-
-  const tick = useCallback(() => {
-    const start = startedAt ? new Date(startedAt).getTime() : Date.now();
-    const seconds = Math.floor((Date.now() - start) / 1000);
-    setElapsed(seconds);
-    if (!maxFiredRef.current && seconds >= MAX_MINUTES * 60) {
-      maxFiredRef.current = true;
-      onMaxReachedRef.current?.();
-    }
-  }, [startedAt]);
+export function useInterviewTimer(active, startedAt, onMaxReached) {
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const intervalRef  = useRef(null);
+  const calledMaxRef = useRef(false);
 
   useEffect(() => {
-    if (!isActive) { clearInterval(intervalRef.current); return; }
-    tick();
-    intervalRef.current = setInterval(tick, 1000);
+    if (!active) return;
+
+    const getElapsed = () => {
+      if (startedAt) {
+        return Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
+      }
+      return 0;
+    };
+
+    setElapsedSeconds(getElapsed());
+
+    intervalRef.current = setInterval(() => {
+      const elapsed = getElapsed();
+      setElapsedSeconds(elapsed);
+
+      if (elapsed >= MAX_SECONDS && !calledMaxRef.current) {
+        calledMaxRef.current = true;
+        clearInterval(intervalRef.current);
+        onMaxReached?.();
+      }
+    }, 1000);
+
     return () => clearInterval(intervalRef.current);
-  }, [isActive, tick]);
+  }, [active, startedAt, onMaxReached]);
 
-  const minutes = Math.floor(elapsed / 60);
-  const seconds = elapsed % 60;
+  // countdown from 15:00 → 00:00
+  const remaining = Math.max(MAX_SECONDS - elapsedSeconds, 0);
+  const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
+  const ss = String(remaining % 60).padStart(2, '0');
+  const formatted = `${mm}:${ss}`;
 
-  return {
-    elapsed,
-    elapsedMinutes: minutes,
-    formatted: `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`,
-  };
+  const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+
+  return { formatted, elapsedSeconds, elapsedMinutes };
 }
