@@ -1,14 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500&display=swap');
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'JetBrains Mono', monospace;
   background: #080e0a;
   color: #c8f0cd;
   min-height: 100vh;
@@ -16,70 +16,28 @@ body {
 
 #root { min-height: 100vh; }
 
-/* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: rgba(34,197,94,0.04); }
 ::-webkit-scrollbar-thumb { background: rgba(34,197,94,0.25); border-radius: 3px; }
 
-/* ── Glass panel ── */
 .glass-panel {
-  background: rgba(12, 26, 14, 0.85);
+  background: rgba(12,26,14,0.85);
   backdrop-filter: blur(12px);
   border: 0.5px solid rgba(34,197,94,0.12);
 }
 
-/* ── Animations ── */
 .pulse-ring {
-  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: pulse-ring 2s cubic-bezier(0.4,0,0.6,1) infinite;
 }
 @keyframes pulse-ring {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50%       { opacity: 1;   transform: scale(1.05); }
+  0%,100% { opacity:0.4; transform:scale(1); }
+  50%      { opacity:1;   transform:scale(1.05); }
 }
 
 .recording-dot {
   animation: blink-rec 1s ease-in-out infinite;
 }
 @keyframes blink-rec {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.3; }
-}
-
-/* ── Terminal cursor blink ── */
-.cursor-blink {
-  animation: cursor-blink 1s step-end infinite;
-}
-@keyframes cursor-blink {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0; }
-}
-
-/* ── Waveform bars ── */
-.waveform-bar {
-  animation: waveform 1.1s ease-in-out infinite;
-}
-@keyframes waveform {
-  0%, 100% { transform: scaleY(0.4); opacity: 0.4; }
-  50%      { transform: scaleY(1.2); opacity: 1; }
-}
-
-/* ── Tailwind custom tokens ── */
-@layer base {
-  :root {
-    --color-accent:      #22c55e;
-    --color-accent-dark: #16a34a;
-    --color-bg:          #080e0a;
-    --color-surface:     #0c1a0e;
-    --color-border:      #1a3a20;
-    --color-text:        #c8f0cd;
-    --color-muted:       #2d6e3a;
-    --color-mid:         #4a8f54;
-  }
-}
-
-@layer utilities {
-  .font-mono-ip { font-family: 'JetBrains Mono', monospace; }
-  .text-accent   { color: #22c55e; }
-  .bg-surface    { background: #0c1a0e; }
-  .border-ip     { border: 0.5px solid #1a3a20; }
+  0%,100% { opacity:1; }
+  50%      { opacity:0.3; }
 }
