@@ -10,57 +10,93 @@ import { loginOrRegister } from './api/userApi';
 const STORAGE_KEY = 'interviewpilot_email';
 
 export default function App() {
-  const [userStatus, setUserStatus] = useState(null); // UserStatusDto from /api/users/login
-  const [resume, setResume] = useState(null);          // ResumeDto once uploaded/confirmed
-  const [mode, setMode] = useState(null);               // 'PRACTICE' | 'REAL'
+  const [userStatus, setUserStatus] = useState(null);
+  const [resume, setResume] = useState(null);
+  const [mode, setMode] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Remember the email locally so returning users skip straight past the login form.
+  // Remember the user's email locally
   useEffect(() => {
     const savedEmail = localStorage.getItem(STORAGE_KEY);
+
     if (savedEmail) {
-      loginOrRegister(savedEmail).then(setUserStatus).catch(() => {
-        localStorage.removeItem(STORAGE_KEY);
-      });
+      loginOrRegister(savedEmail)
+        .then((status) => {
+          setUserStatus(status);
+          if (status.latestResume) {
+            setResume(status.latestResume);
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem(STORAGE_KEY);
+        });
     }
   }, []);
 
   const handleLoggedIn = (status) => {
     localStorage.setItem(STORAGE_KEY, status.email);
     setUserStatus(status);
-    if (status.latestResume) setResume(status.latestResume);
+
+    if (status.latestResume) {
+      setResume(status.latestResume);
+    }
   };
 
   const handleResumeConfirmed = (confirmedResume) => {
     setResume(confirmedResume);
   };
 
-  const newSession = await startInterview({
-  ...config,
-  candidateEmail: config.email,
-  userId: userStatus?.userId,
-  resumeId: resume?.id,
-});
+  // ✅ Start Interview
+  const handleStart = async (config) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const newSession = await startInterview({
+        ...config,
+        candidateEmail: config.email,
+        userId: userStatus?.userId,
+        resumeId: resume?.id,
+      });
+
+      setSession(newSession);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Failed to start interview.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRestart = () => {
     setSession(null);
     setMode(null);
     setError(null);
-    // Refresh status so the dashboard reflects the session that just finished
-    // (new day number / difficulty / attempt count).
+
     if (userStatus?.email) {
-      loginOrRegister(userStatus.email).then(setUserStatus).catch(() => {});
+      loginOrRegister(userStatus.email)
+        .then(setUserStatus)
+        .catch(() => {});
     }
   };
 
   if (session) {
-    return <InterviewRoom session={session} onRestart={handleRestart} />;
+    return (
+      <InterviewRoom
+        session={session}
+        onRestart={handleRestart}
+      />
+    );
   }
 
   if (!userStatus) {
-    return <LoginScreen onLoggedIn={handleLoggedIn} />;
+    return (
+      <LoginScreen
+        onLoggedIn={handleLoggedIn}
+      />
+    );
   }
 
   if (!resume) {
@@ -75,7 +111,12 @@ export default function App() {
   }
 
   if (!mode) {
-    return <Dashboard userStatus={userStatus} onSelectMode={setMode} />;
+    return (
+      <Dashboard
+        userStatus={userStatus}
+        onSelectMode={setMode}
+      />
+    );
   }
 
   return (
@@ -85,7 +126,13 @@ export default function App() {
           {error}
         </div>
       )}
-      <SetupScreen onStart={handleStart} loading={loading} mode={mode} onBack={() => setMode(null)} />
+
+      <SetupScreen
+        onStart={handleStart}
+        loading={loading}
+        mode={mode}
+        onBack={() => setMode(null)}
+      />
     </>
   );
 }
