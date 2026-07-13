@@ -5,6 +5,7 @@ import com.interviewpilot.model.InterviewerGender;
 import com.interviewpilot.model.SessionMode;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -14,6 +15,11 @@ public class StartInterviewRequest {
 
     @NotBlank
     private String candidateName;
+
+    /** Required — the report email is sent here after the interview concludes. */
+    @NotBlank
+    @Email
+    private String candidateEmail;
 
     @NotBlank
     private String jobRole;
