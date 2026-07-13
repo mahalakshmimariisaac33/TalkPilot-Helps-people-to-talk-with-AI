@@ -37,22 +37,12 @@ export default function App() {
     setResume(confirmedResume);
   };
 
-  const handleStart = async (config) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const newSession = await startInterview({
-        ...config,
-        userId: userStatus?.userId,
-        resumeId: resume?.id,
-      });
-      setSession(newSession);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const newSession = await startInterview({
+  ...config,
+  candidateEmail: config.email,
+  userId: userStatus?.userId,
+  resumeId: resume?.id,
+});
 
   const handleRestart = () => {
     setSession(null);
